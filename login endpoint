@@ -1,0 +1,41 @@
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api")
+public class AuthController {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody User user) 
+        Optional<User> userOptional = userRepository.findByUsername(user.getUsername());
+
+        if (userOptional.isPresent() && userOptional.get().getPassword().equals(user.getPassword())) {
+            String token = generateToken(userOptional.get().getId());
+            return ResponseEntity.ok(token);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+        }
+    }
+    private String generateToken(Long userId) {
+    
+        long expirationTime = System.currentTimeMillis() + 3600000; 
+        Date expirationDate = new Date(expirationTime);
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        String token = Jwts.builder()
+                .setClaims(claims)
+                .setExpiration(expirationDate)
+                .signWith(SignatureAlgorithm.HS256, "YourSecretKey")
+                .compact();
+
+        return token;
+    }
+}
